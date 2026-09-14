@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="mrad" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="FFP-style milliradian reticle for iPhone camera. Angular estimate only — not a surveyed optic." />
+  <link rel="manifest" href="/mrad-reticle/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/mrad-reticle/icons/icon-180.png" />
+  <title>mrad Reticle</title>
+  <script type="module" crossorigin src="/mrad-reticle/assets/index-Dcbag3fk.js"></script>
+  <link rel="stylesheet" crossorigin href="/mrad-reticle/assets/index-BSW9168O.css">
+</head>
+<body>
+  <div id="app">
+    <div id="scene">
+      <video id="cam" playsinline webkit-playsinline autoplay muted></video>
+      <div id="demoScene" class="hidden" aria-hidden="true">
+        <div class="demo-sky"></div>
+        <div class="demo-ground"></div>
+        <div class="demo-plate" id="demoPlate">
+          <span>12″ @ 100 yd</span>
+        </div>
+      </div>
+    </div>
+    <canvas id="reticle"></canvas>
+
+    <div id="gate" class="panel center">
+      <h1>mrad Reticle</h1>
+      <p>Phone-camera first-focal-plane mil reticle. Zoom on the phone, measure in milliradians. No spotting scope.</p>
+      <button id="btnStart" class="primary">Allow Camera &amp; Start</button>
+      <button id="btnDemo" class="ghost">Demo mode (no camera)</button>
+      <p class="fine">iPhone: open in <strong>Safari</strong>, then Share → <strong>Add to Home Screen</strong>.</p>
+      <p class="disclaimer-block">Angular estimate only. Not a surveyed optic. Do not use as a substitute for a calibrated riflescope or a known-distance range.</p>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div class="topbar">
+        <span id="zoomLabel">Zoom 1.00×</span>
+        <button type="button" id="calChip" class="chip warn">Not calibrated</button>
+        <span id="deltaLabel">Δ —</span>
+      </div>
+
+      <div id="uncalBanner" class="banner warn">
+        Reticle is visual only until you calibrate. Tap Calibrate.
+      </div>
+
+      <div class="controls">
+        <button id="btnZoomOut" type="button" aria-label="Zoom out">−</button>
+        <input id="zoom" type="range" min="1" max="12" step="0.01" value="1" aria-label="Zoom" />
+        <button id="btnZoomIn" type="button" aria-label="Zoom in">+</button>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" data-panel="cal">Calibrate</button>
+        <button type="button" data-panel="measure">Measure</button>
+        <button type="button" data-panel="reticle">Reticle</button>
+        <button type="button" data-panel="help">Help</button>
+        <button type="button" id="btnWake" class="toggle">Awake</button>
+        <button type="button" id="btnFlip">Flip</button>
+      </div>
+    </div>
+
+    <div id="pickBanner" class="pick-banner hidden">
+      <p id="pickHint">Tap point 1 of 2</p>
+      <div class="row">
+        <button type="button" id="btnPickUndo" class="ghost">Undo</button>
+        <button type="button" id="btnPickCancel">Cancel</button>
+      </div>
+    </div>
+
+    <div id="panel-cal" class="sheet hidden">
+      <div class="sheet-head">
+        <h2>Calibrate</h2>
+        <button type="button" data-close class="ghost compact">Close</button>
+      </div>
+      <ol class="steps" aria-label="Calibration steps">
+        <li id="stepInd1" class="on">1 Size</li>
+        <li id="stepInd2">2 Mark</li>
+        <li id="stepInd3">3 Save</li>
+      </ol>
+
+      <section id="cal-step-1">
+        <p class="fine">Use a target of known height at a known distance (steel plate, IPSC, yardstick). Measure both with a tape if you can.</p>
+        <label>Known height
+          <input id="knownSize" type="number" inputmode="decimal" value="12" step="0.1" min="0" />
+          <select id="sizeUnit">
+            <option value="in">inches</option>
+            <option value="cm">cm</option>
+          </select>
+        </label>
+        <label>Distance to target
+          <input id="knownDist" type="number" inputmode="decimal" value="100" step="1" min="0" />
+          <select id="distUnit">
+            <option value="yd">yards</option>
+            <option value="m">meters</option>
+          </select>
+        </label>
+        <p id="calExpected" class="result-inline">Expected angular size: 3.33 mrad</p>
+        <p id="calStep1Err" class="error hidden"></p>
+        <div class="row">
+          <button type="button" id="btnCalNext" class="primary">Next: mark target</button>
+        </div>
+      </section>
+
+      <section id="cal-step-2" class="hidden">
+        <p class="fine">This sheet will hide so you can see the camera. Tap the <strong>top</strong> of the known height, then the <strong>bottom</strong>. Same zoom you will shoot with is fine — FFP math stores 1× equivalent.</p>
+        <div class="row">
+          <button type="button" id="btnCalPick" class="primary">Start marking</button>
+          <button type="button" id="btnCalBack" class="ghost">Back</button>
+        </div>
+      </section>
+
+      <section id="cal-step-3" class="hidden">
+        <p id="calMath" class="result-inline"></p>
+        <label>Profile name
+          <input id="calName" type="text" maxlength="40" placeholder="iPhone rear · 1×" />
+        </label>
+        <p id="calStep3Err" class="error hidden"></p>
+        <div class="row">
+          <button type="button" id="btnCalSave" class="primary">Save profile</button>
+          <button type="button" id="btnCalUseUnsaved" class="ghost">Use without saving</button>
+          <button type="button" id="btnCalRedo" class="ghost">Mark again</button>
+        </div>
+      </section>
+
+      <section class="profiles">
+        <h3>Saved profiles</h3>
+        <p class="fine">Stored only on this iPhone. Switching phones or front/rear camera needs a new profile.</p>
+        <ul id="profileList"></ul>
+        <p id="profileEmpty" class="fine">No saved profiles yet.</p>
+      </section>
+    </div>
+
+    <div id="panel-measure" class="sheet hidden">
+      <div class="sheet-head">
+        <h2>Measure</h2>
+        <button type="button" data-close class="ghost compact">Close</button>
+      </div>
+      <p class="fine">Tap two points on the object (top → bottom or left → right). Δ is angular size. Enter range only if you want a size estimate.</p>
+      <div class="row">
+        <button type="button" id="btnMeasPick" class="primary">Pick 2 points</button>
+        <button type="button" id="btnMeasClear" class="ghost">Clear</button>
+      </div>
+      <label>Range (for size)
+        <input id="measRange" type="number" inputmode="decimal" value="100" step="1" min="0" />
+        <select id="measRangeUnit">
+          <option value="yd">yards</option>
+          <option value="m">meters</option>
+        </select>
+      </label>
+      <label class="check"><input id="showMoa" type="checkbox" /> Also show MOA</label>
+      <p id="measOut" class="result">—</p>
+    </div>
+
+    <div id="panel-reticle" class="sheet hidden">
+      <div class="sheet-head">
+        <h2>Reticle</h2>
+        <button type="button" data-close class="ghost compact">Close</button>
+      </div>
+      <label>Style
+        <select id="retStyle">
+          <option value="hash">Hash / holdover tree</option>
+          <option value="mildot">Mil-dot</option>
+          <option value="cross">Cross + ticks</option>
+        </select>
+      </label>
+      <label>Color
+        <select id="retColor">
+          <option value="#ff2a2a">Red</option>
+          <option value="#33ff66">Green</option>
+          <option value="#ffffff">White</option>
+          <option value="#111111">Black</option>
+        </select>
+      </label>
+      <label>Opacity <input id="retOpacity" type="range" min="0.35" max="1" step="0.05" value="0.92" /></label>
+      <label>Major tick (mrad)
+        <select id="majorMrad">
+          <option value="1">1 mrad</option>
+          <option value="0.5">0.5 mrad</option>
+        </select>
+      </label>
+    </div>
+
+    <div id="panel-help" class="sheet hidden">
+      <div class="sheet-head">
+        <h2>Help</h2>
+        <button type="button" data-close class="ghost compact">Close</button>
+      </div>
+      <h3>On iPhone</h3>
+      <ol class="help-list">
+        <li>Safari only (not Chrome). Share → Add to Home Screen.</li>
+        <li>Allow Camera. Use the rear camera at the range.</li>
+        <li>Calibrate on a known-size target at a known distance.</li>
+        <li>Zoom with +/− or the slider. The reticle grows with zoom (FFP).</li>
+        <li>Measure: pick two points → Δ mrad. Optional size if you enter range.</li>
+      </ol>
+      <h3>Zoom limits (honest)</h3>
+      <p class="fine">iPhone Safari almost never exposes the Camera app’s 0.5× / 2× / 3× lenses or optical zoom to a website. This app uses <strong>digital zoom</strong> (the picture is enlarged on screen). Past about 4× the image gets soft. Native hardware zoom is used only if the browser reports it (uncommon on iOS).</p>
+      <h3>Safety</h3>
+      <p class="disclaimer-block">Angular estimate only. Not a surveyed optic. Recalibrate after rotating the phone, flipping cameras, or changing cases/lenses. Verify any hold or size call with a known-distance target or a real scope before you rely on it.</p>
+    </div>
+
+    <p id="disclaimer">Angular estimate only · not a surveyed optic · verify before use</p>
+  </div>
+</body>
+</html>
