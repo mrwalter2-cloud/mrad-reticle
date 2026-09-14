@@ -182,7 +182,7 @@ html, body {
   position: absolute;
   left: calc(12px + var(--safe-l));
   right: calc(12px + var(--safe-r));
-  bottom: calc(76px + var(--safe-b));
+  bottom: calc(118px + var(--safe-b));
   display: flex;
   align-items: center;
   gap: 10px;
@@ -199,7 +199,8 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 8px 8px calc(8px + var(--safe-b));
   padding-left: calc(8px + var(--safe-l));
@@ -207,7 +208,6 @@ html, body {
   background: rgba(0,0,0,.78);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  overflow-x: auto;
 }
 
 button, .toolbar button {
@@ -222,7 +222,7 @@ button, .toolbar button {
   min-height: 48px;
 }
 
-.toolbar button { flex: 1 0 auto; }
+.toolbar button { min-width: 0; font-size: 14px; padding: 10px 6px; }
 
 button.primary { background: var(--red); border-color: #e53935; }
 button.ghost { background: transparent; }
@@ -388,12 +388,14 @@ button.danger { background: #4a1515; border-color: #c62828; }
 }
 
 #hud:not(.hidden) ~ #disclaimer {
-  bottom: calc(128px + var(--safe-b));
+  bottom: calc(168px + var(--safe-b));
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
   .toolbar {
+    display: flex;
     flex-direction: column;
+    grid-template-columns: none;
     left: auto;
     right: 0;
     top: calc(52px + var(--safe-t));
