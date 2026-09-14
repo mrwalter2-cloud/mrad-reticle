@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="FFP-style milliradian reticle for iPhone camera Zoom at the range" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+  <title>mrad Reticle</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <video id="cam" playsinline autoplay muted></video>
+    <canvas id="reticle"></canvas>
+
+    <div id="gate" class="panel center">
+      <h1>mrad Reticle</h1>
+      <p>Phone-camera FFP-style mil reticle. No spotting scope required.</p>
+      <button id="btnStart" class="primary">Allow Camera &amp; Start</button>
+      <button id="btnDemo" class="ghost">Demo mode (no camera)</button>
+      <p class="fine">Safari → Share → Add to Home Screen for full-screen use.</p>
+    </div>
+
+    <div id="hud" class="hidden">
+      <div class="topbar">
+        <span id="zoomLabel">Zoom 1.00×</span>
+        <span id="calLabel">Uncalibrated</span>
+        <span id="deltaLabel">Δ —</span>
+      </div>
+
+      <div class="controls">
+        <button id="btnZoomOut" title="Zoom out">−</button>
+        <input id="zoom" type="range" min="1" max="8" step="0.01" value="1" />
+        <button id="btnZoomIn" title="Zoom in">+</button>
+      </div>
+
+      <div class="toolbar">
+        <button data-panel="cal">Calibrate</button>
+        <button data-panel="measure">Measure</button>
+        <button data-panel="reticle">Reticle</button>
+        <button id="btnWake" class="toggle">Keep Awake</button>
+        <button id="btnFlip">Flip</button>
+      </div>
+    </div>
+
+    <div id="panel-cal" class="sheet hidden">
+      <h2>Calibration</h2>
+      <p class="fine">Use a target of known size at a known distance. This sets pixels-per-mrad for the current zoom.</p>
+      <label>Known height <input id="knownSize" type="number" inputmode="decimal" value="12" step="0.1" /> 
+        <select id="sizeUnit"><option value="in">in</option><option value="cm">cm</option></select>
+      </label>
+      <label>Distance <input id="knownDist" type="number" inputmode="decimal" value="100" step="1" />
+        <select id="distUnit"><option value="yd">yd</option><option value="m">m</option></select>
+      </label>
+      <p class="fine">Then drag two points on the target edges (top→bottom of known height).</p>
+      <div class="row">
+        <button id="btnCalPick" class="primary">Pick 2 points on target</button>
+        <button id="btnCalSave">Save profile</button>
+        <button data-close class="ghost">Close</button>
+      </div>
+      <label>Profile name <input id="calName" type="text" value="Default" /></label>
+      <select id="calProfiles"></select>
+      <p id="calMath" class="fine"></p>
+    </div>
+
+    <div id="panel-measure" class="sheet hidden">
+      <h2>Measure</h2>
+      <p class="fine">Drag two points. Shows Δmrad; enter range to get size.</p>
+      <div class="row">
+        <button id="btnMeasPick" class="primary">Pick 2 points</button>
+        <button id="btnMeasClear" class="ghost">Clear</button>
+        <button data-close class="ghost">Close</button>
+      </div>
+      <label>Range (for size) <input id="measRange" type="number" inputmode="decimal" value="100" step="1" />
+        <select id="measRangeUnit"><option value="yd">yd</option><option value="m">m</option></select>
+      </label>
+      <p id="measOut" class="result">—</p>
+    </div>
+
+    <div id="panel-reticle" class="sheet hidden">
+      <h2>Reticle</h2>
+      <label>Style
+        <select id="retStyle">
+          <option value="hash">Hash / Christmas tree</option>
+          <option value="mildot">Mil-dot</option>
+          <option value="cross">Cross + ticks</option>
+        </select>
+      </label>
+      <label>Color
+        <select id="retColor">
+          <option value="#ff2a2a">Red</option>
+          <option value="#33ff66">Green</option>
+          <option value="#ffffff">White</option>
+          <option value="#111111">Black</option>
+        </select>
+      </label>
+      <label>Opacity <input id="retOpacity" type="range" min="0.35" max="1" step="0.05" value="0.9" /></label>
+      <label>Major tick (mrad) <input id="majorMrad" type="number" value="1" min="0.5" max="2" step="0.5" /></label>
+      <label><input id="showMoa" type="checkbox" /> Show MOA readout</label>
+      <button data-close class="primary">Done</button>
+    </div>
+
+    <p id="disclaimer">Angular estimate only · not a surveyed optic · verify before use</p>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
