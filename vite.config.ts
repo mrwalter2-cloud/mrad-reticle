@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/',
+  base: '/mrad-reticle/',
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,webmanifest,svg,ico}'],
-        navigateFallback: '/index.html',
+        navigateFallback: '/mrad-reticle/index.html',
       },
       devOptions: { enabled: false },
     }),

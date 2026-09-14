@@ -2,7 +2,7 @@
   "name": "mrad Reticle",
   "short_name": "mrad",
   "description": "FFP-style milliradian reticle for iPhone camera. Angular estimate only.",
-  "start_url": "/",
+  "start_url": "/mrad-reticle/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
