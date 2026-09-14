@@ -1,9 +1,23 @@
 {
   "name": "mrad-reticle",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "iPhone FFP-style milliradian camera reticle PWA",
   "scripts": {
-    "dev": "python3 server.py",
-    "start": "python3 server.py"
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "start": "python3 server.py",
+    "serve": "python3 server.py"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^3.2.4"
   }
 }
