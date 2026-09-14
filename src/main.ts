@@ -16,11 +16,14 @@ import {
   mradToMoa,
   pxPerMradAt1x,
   pxToMrad,
+  sceneToScreen,
+  screenToScene,
   sizeAtRangeM,
   toMetersDist,
   validateCalSpan,
   validateCalibrationInputs,
   type DistUnit,
+  type Point,
   type SizeUnit,
 } from './math';
 import { drawPickOverlay, drawReticle } from './reticle';
@@ -59,8 +62,8 @@ const state = {
   profileName: '',
   profileId: null as string | null,
   pickMode: null as 'cal' | 'meas' | null,
-  pickPts: [] as { x: number; y: number }[],
-  measPts: null as [{ x: number; y: number }, { x: number; y: number }] | null,
+  pickPts: [] as Point[],
+  measPts: null as [Point, Point] | null,
   wakeLock: null as WakeLockSentinel | null,
   wantWake: false,
   calStep: 1,
@@ -105,8 +108,11 @@ function draw(): void {
     major: p.major,
     calibrated: !!state.pxPerMrad,
   });
-  if (state.pickPts.length) drawPickOverlay(ctx, state.pickPts);
-  if (state.measPts) drawPickOverlay(ctx, state.measPts);
+  const cx = w / 2;
+  const cy = h / 2;
+  const z = state.zoom.value;
+  if (state.pickPts.length) drawPickOverlay(ctx, state.pickPts.map((p) => sceneToScreen(p, z, cx, cy)));
+  if (state.measPts) drawPickOverlay(ctx, state.measPts.map((p) => sceneToScreen(p, z, cx, cy)));
 }
 
 function updateCalChip(): void {
@@ -214,10 +220,11 @@ function setPickMode(mode: 'cal' | 'meas' | null): void {
   draw();
 }
 
-function finishCalibration(pts: [{ x: number; y: number }, { x: number; y: number }]): void {
+function finishCalibration(pts: [Point, Point]): void {
   const v = validateCalibrationInputs(calInputs());
-  const span = hypotPx(pts[0], pts[1]);
-  const spanErr = validateCalSpan(span);
+  const spanScene = hypotPx(pts[0], pts[1]);
+  const spanScreen = spanScene * state.zoom.value;
+  const spanErr = validateCalSpan(spanScreen);
   const err = $('calStep3Err');
   if (!v.ok || spanErr) {
     err.textContent = spanErr ?? v.errors[0] ?? 'Calibration failed';
@@ -226,7 +233,7 @@ function finishCalibration(pts: [{ x: number; y: number }, { x: number; y: numbe
     setCalStep(2);
     return;
   }
-  const ppm1x = pxPerMradAt1x(span, v.mrad, state.zoom.value);
+  const ppm1x = pxPerMradAt1x(spanScreen, v.mrad, state.zoom.value);
   if (!(ppm1x > 0)) {
     err.textContent = 'Could not compute px/mrad. Try again.';
     err.classList.remove('hidden');
@@ -236,13 +243,13 @@ function finishCalibration(pts: [{ x: number; y: number }, { x: number; y: numbe
   }
   err.classList.add('hidden');
   state.pxPerMrad = ppm1x;
-  state.lastCal = { pxPerMrad: ppm1x, spanPx: span, mrad: v.mrad, zoom: state.zoom.value };
+  state.lastCal = { pxPerMrad: ppm1x, spanPx: spanScreen, mrad: v.mrad, zoom: state.zoom.value };
   const facing = state.facingMode === 'environment' ? 'rear' : 'front';
   if (!$<HTMLInputElement>('calName').value.trim()) {
     $<HTMLInputElement>('calName').value = `${facing} · ${state.zoom.value.toFixed(2)}×`;
   }
   $('calMath').textContent =
-    `Span ${span.toFixed(1)} px over ${v.mrad.toFixed(3)} mrad at ${state.zoom.value.toFixed(2)}× → ` +
+    `Span ${spanScreen.toFixed(1)} px over ${v.mrad.toFixed(3)} mrad at ${state.zoom.value.toFixed(2)}× → ` +
     `${ppm1x.toFixed(3)} px/mrad at 1×. Reticle and measure scale with zoom (FFP).`;
   updateCalChip();
   updateMeasure();
@@ -260,13 +267,14 @@ function updateMeasure(): void {
     delta.textContent = 'Δ —';
     return;
   }
-  const span = hypotPx(pts[0], pts[1]);
+  const spanScene = hypotPx(pts[0], pts[1]);
+  const spanScreen = spanScene * state.zoom.value;
   if (!state.pxPerMrad) {
     out.textContent = 'Calibrate first for real mrad.\nCurrent span is pixels only.';
-    delta.textContent = `Δ ${span.toFixed(0)} px`;
+    delta.textContent = `Δ ${spanScreen.toFixed(0)} px`;
     return;
   }
-  const mrad = pxToMrad(span, state.pxPerMrad, state.zoom.value);
+  const mrad = pxToMrad(spanScreen, state.pxPerMrad, state.zoom.value);
   const rangeVal = parseFloat($<HTMLInputElement>('measRange').value);
   const rangeUnit = $<HTMLSelectElement>('measRangeUnit').value as DistUnit;
   const showMoa = $<HTMLInputElement>('showMoa').checked;
@@ -587,7 +595,13 @@ canvas.addEventListener('pointerdown', (e) => {
   if (!state.pickMode) return;
   e.preventDefault();
   const rect = canvas.getBoundingClientRect();
-  const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const pt = screenToScene(
+    e.clientX - rect.left,
+    e.clientY - rect.top,
+    state.zoom.value,
+    window.innerWidth / 2,
+    window.innerHeight / 2,
+  );
   state.pickPts.push(pt);
   draw();
   if (state.pickPts.length === 1) {
@@ -597,7 +611,7 @@ canvas.addEventListener('pointerdown', (e) => {
         : 'Tap the second edge (2 of 2)';
     return;
   }
-  const pts = [state.pickPts[0], state.pickPts[1]] as [{ x: number; y: number }, { x: number; y: number }];
+  const pts = [state.pickPts[0], state.pickPts[1]] as [Point, Point];
   const mode = state.pickMode;
   setPickMode(null);
   if (mode === 'cal') finishCalibration(pts);

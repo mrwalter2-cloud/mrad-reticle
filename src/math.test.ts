@@ -13,6 +13,8 @@ import {
   validateCalSpan,
   validateCalibrationInputs,
   hypotPx,
+  screenToScene,
+  sceneToScreen,
   MIN_CAL_SPAN_PX,
 } from './math';
 
@@ -116,5 +118,28 @@ describe('validation', () => {
 describe('hypotPx', () => {
   it('measures screen distance', () => {
     expect(hypotPx({ x: 0, y: 0 }, { x: 3, y: 4 })).toBe(5);
+  });
+});
+
+describe('scene coordinates (FFP picks)', () => {
+  const cx = 200;
+  const cy = 400;
+
+  it('round-trips a tap through zoom', () => {
+    const scene = screenToScene(260, 430, 2, cx, cy);
+    expect(scene).toEqual({ x: 30, y: 15 });
+    expect(sceneToScreen(scene, 2, cx, cy)).toEqual({ x: 260, y: 430 });
+    expect(sceneToScreen(scene, 4, cx, cy)).toEqual({ x: 320, y: 460 });
+  });
+
+  it('keeps mrad stable when the same feature is zoomed', () => {
+    const ppm1x = 10;
+    const top = screenToScene(200, 340, 1, cx, cy);
+    const bot = screenToScene(200, 400, 1, cx, cy);
+    const span1x = hypotPx(top, bot);
+    expect(pxToMrad(span1x * 1, ppm1x, 1)).toBeCloseTo(6, 8);
+    const top2 = sceneToScreen(top, 2, cx, cy);
+    const bot2 = sceneToScreen(bot, 2, cx, cy);
+    expect(pxToMrad(hypotPx(top2, bot2), ppm1x, 2)).toBeCloseTo(6, 8);
   });
 });

@@ -67,8 +67,28 @@ export function metersToCm(m: number): number {
   return m * 100;
 }
 
-export function hypotPx(a: { x: number; y: number }, b: { x: number; y: number }): number {
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export function hypotPx(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+/**
+ * Convert a screen tap into 1× scene coordinates (offset from view center / zoom).
+ * The video is CSS-scaled from the center; storing 1× coords keeps picks on the
+ * same feature when the user changes zoom (FFP).
+ */
+export function screenToScene(x: number, y: number, zoom: number, cx: number, cy: number): Point {
+  const z = zoom > 0 ? zoom : 1;
+  return { x: (x - cx) / z, y: (y - cy) / z };
+}
+
+export function sceneToScreen(pt: Point, zoom: number, cx: number, cy: number): Point {
+  const z = zoom > 0 ? zoom : 1;
+  return { x: cx + pt.x * z, y: cy + pt.y * z };
 }
 
 export interface CalInput {
